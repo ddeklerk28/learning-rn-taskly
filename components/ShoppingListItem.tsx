@@ -1,10 +1,16 @@
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { theme } from "../theme";
 
-export const ShoppingListItem = () => {
+type IShoppingListItemProps = {
+  name: string;
+};
+
+export const ShoppingListItem: React.FC<IShoppingListItemProps> = ({
+  name,
+}) => {
   const handleDelete = () => {
     Alert.alert(
-      "Are you sure you want to delete this?",
+      `Are you sure you want to delete ${name}?`,
       "It Will be gone for good",
       [
         {
@@ -19,7 +25,7 @@ export const ShoppingListItem = () => {
 
   return (
     <View style={styles.item}>
-      <Text style={styles.itemText}>Coffee</Text>
+      <Text style={styles.itemText}>{name}</Text>
       <TouchableOpacity
         onPress={handleDelete}
         style={styles.button}
