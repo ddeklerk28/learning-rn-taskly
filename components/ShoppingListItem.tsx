@@ -1,5 +1,6 @@
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { theme } from '../theme';
+import AntDesign from '@expo/vector-icons/AntDesign';
 
 type IShoppingListItemProps = {
   name: string;
@@ -35,15 +36,12 @@ export const ShoppingListItem: React.FC<IShoppingListItemProps> = ({
       >
         {name}
       </Text>
-      <TouchableOpacity
-        onPress={handleDelete}
-        style={[
-          styles.button,
-          isCompleted ? styles.completedButton : undefined,
-        ]}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.buttonText}>Delete</Text>
+      <TouchableOpacity onPress={handleDelete}>
+        <AntDesign
+          name="closecircle"
+          size={24}
+          color={isCompleted ? theme.colorGrey : theme.colorRed}
+        />
       </TouchableOpacity>
     </View>
   );
@@ -59,24 +57,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  button: {
-    backgroundColor: theme.colorBlack,
-    padding: 8,
-    borderRadius: 6,
-  },
-  buttonText: {
-    color: theme.colorWhite,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
   itemText: { fontSize: 18, fontWeight: 200 },
   completedItem: {
     backgroundColor: theme.colorLightGrey,
     borderBottomColor: theme.colorLightGrey,
-  },
-  completedButton: {
-    backgroundColor: theme.colorGrey,
   },
   completedButtonText: {
     textDecorationLine: 'line-through',
