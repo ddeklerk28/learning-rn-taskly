@@ -6,16 +6,22 @@ import { useState } from 'react';
 type TShoppingListItemType = {
   id: string;
   name: string;
-  isCompleted?: boolean;
+  completedAtTimestamp?: number;
+  lastUpdatedTimestamp: number;
 };
 
 const initialList: TShoppingListItemType[] = [
-  { id: '1', name: 'Coffee' },
-  { id: '2', name: 'Tea' },
-  { id: '3', name: 'Sugar' },
+  { id: '1', name: 'Coffee', lastUpdatedTimestamp: 1 },
+  { id: '2', name: 'Tea', lastUpdatedTimestamp: 2 },
+  { id: '3', name: 'Sugar', lastUpdatedTimestamp: 3 },
+  {
+    id: '4',
+    name: 'Turbo long shopping list item name, so this should be handled with a special case',
+    lastUpdatedTimestamp: 4,
+  },
 ];
 
-export default function Index() {
+export default function App() {
   const [shoppingList, setShoppingList] =
     useState<TShoppingListItemType[]>(initialList);
   const [value, setValue] = useState('');
@@ -23,7 +29,11 @@ export default function Index() {
   const handleSubmit = () => {
     if (value) {
       const newShoppingList: TShoppingListItemType[] = [
-        { id: new Date().toTimeString(), name: value },
+        {
+          id: new Date().toTimeString(),
+          name: value,
+          lastUpdatedTimestamp: Date.now(),
+        },
         ...shoppingList,
       ];
 
@@ -31,9 +41,33 @@ export default function Index() {
       setValue('');
     }
   };
+
+  const handleDelete = (id: string) => {
+    const updatedShoppingList = shoppingList.filter((item) => id !== item.id);
+
+    setShoppingList(updatedShoppingList);
+  };
+
+  const handleToggleComplete = (id: string) => {
+    const updatedShoppingList = shoppingList.map((item) => {
+      if (id === item.id) {
+        return {
+          ...item,
+          completedAtTimestamp: item.completedAtTimestamp
+            ? undefined
+            : Date.now(),
+          lastUpdatedTimestamp: Date.now(),
+        };
+      }
+      return item;
+    });
+
+    setShoppingList(updatedShoppingList);
+  };
+
   return (
     <FlatList
-      data={shoppingList}
+      data={orderShoppingList(shoppingList)}
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
       stickyHeaderIndices={[0]}
@@ -54,17 +88,46 @@ export default function Index() {
         />
       }
       renderItem={({ item }) => {
-        return <ShoppingListItem name={item.name} />;
+        return (
+          <ShoppingListItem
+            name={item.name}
+            onDelete={() => handleDelete(item.id)}
+            onToggleComplete={() => handleToggleComplete(item.id)}
+            isCompleted={item.completedAtTimestamp}
+          />
+        );
       }}
     />
   );
+}
+
+function orderShoppingList(shoppingList: TShoppingListItemType[]) {
+  return shoppingList.sort((item1, item2) => {
+    if (item1.completedAtTimestamp && item2.completedAtTimestamp) {
+      return item2.completedAtTimestamp - item1.completedAtTimestamp;
+    }
+
+    if (item1.completedAtTimestamp && !item2.completedAtTimestamp) {
+      return 1;
+    }
+
+    if (!item1.completedAtTimestamp && item2.completedAtTimestamp) {
+      return -1;
+    }
+
+    if (!item1.completedAtTimestamp && !item2.completedAtTimestamp) {
+      return item2.lastUpdatedTimestamp - item1.lastUpdatedTimestamp;
+    }
+
+    return 0;
+  });
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colorWhite,
-    padding: 12,
+    paddingVertical: 12,
   },
   contentContainer: {
     paddingBottom: 24,
