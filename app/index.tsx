@@ -1,4 +1,11 @@
-import { FlatList, StyleSheet, TextInput, View, Text, LayoutAnimation } from 'react-native';
+import {
+  FlatList,
+  StyleSheet,
+  TextInput,
+  View,
+  Text,
+  LayoutAnimation,
+} from 'react-native';
 import { theme } from '../theme';
 import { ShoppingListItem } from '../components/ShoppingListItem';
 import { useEffect, useState } from 'react';
@@ -13,20 +20,8 @@ type TShoppingListItemType = {
   lastUpdatedTimestamp: number;
 };
 
-const initialList: TShoppingListItemType[] = [
-  { id: '1', name: 'Coffee', lastUpdatedTimestamp: 1 },
-  { id: '2', name: 'Tea', lastUpdatedTimestamp: 2 },
-  { id: '3', name: 'Sugar', lastUpdatedTimestamp: 3 },
-  {
-    id: '4',
-    name: 'Turbo long shopping list item name, so this should be handled with a special case',
-    lastUpdatedTimestamp: 4,
-  },
-];
-
 export default function App() {
-  const [shoppingList, setShoppingList] =
-    useState<TShoppingListItemType[]>(initialList);
+  const [shoppingList, setShoppingList] = useState<TShoppingListItemType[]>([]);
   const [value, setValue] = useState('');
 
   useEffect(() => {
