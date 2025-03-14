@@ -6,6 +6,16 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { SchedulableTriggerInputTypes } from 'expo-notifications';
 import { useEffect, useState } from 'react';
+import type { Duration } from 'date-fns';
+import { intervalToDuration, isBefore } from 'date-fns';
+import { TimeSegment } from '../../components/TimeSegment';
+
+const timestamp = Date.now() + 10 * 1000;
+
+type CoundownStatus = {
+  isOverdue: boolean;
+  distance: Duration;
+};
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -16,11 +26,21 @@ Notifications.setNotificationHandler({
 });
 
 export default function CounterScreen() {
-  const [secondsElapsed, setSecondsElapsed] = useState(0);
+  const [status, setStatus] = useState<CoundownStatus>({
+    isOverdue: false,
+    distance: {},
+  });
+  console.log('status', status);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
-      setSecondsElapsed((prevSecond) => Number(prevSecond + 1));
+      const isOverdue = isBefore(timestamp, Date.now());
+      const distance = intervalToDuration(
+        isOverdue
+          ? { start: timestamp, end: Date.now() }
+          : { start: Date.now(), end: timestamp },
+      );
+      setStatus({ isOverdue, distance });
     }, 1000);
 
     return () => {
@@ -52,7 +72,34 @@ export default function CounterScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[styles.container, status.isOverdue ? styles.containerLate : '']}
+    >
+      <Text style={[styles.heading, status.isOverdue ? styles.whiteText : '']}>
+        {status.isOverdue ? 'Thing Overdue By' : 'Thing due in'}
+      </Text>
+      <View style={styles.row}>
+        <TimeSegment
+          textStyle={status.isOverdue ? styles.whiteText : undefined}
+          number={status.distance.days ?? 0}
+          unit="Days"
+        />
+        <TimeSegment
+          textStyle={status.isOverdue ? styles.whiteText : undefined}
+          number={status.distance.hours ?? 0}
+          unit="Hours"
+        />
+        <TimeSegment
+          textStyle={status.isOverdue ? styles.whiteText : undefined}
+          number={status.distance.minutes ?? 0}
+          unit="Minutes"
+        />
+        <TimeSegment
+          textStyle={status.isOverdue ? styles.whiteText : undefined}
+          number={status.distance.seconds ?? 0}
+          unit="Seconds"
+        />
+      </View>
       <TouchableOpacity
         style={styles.button}
         activeOpacity={0.8}
@@ -60,7 +107,6 @@ export default function CounterScreen() {
       >
         <Text style={styles.buttonText}>Schedule Notification</Text>
       </TouchableOpacity>
-      <Text style={styles.text}>{secondsElapsed}</Text>
     </View>
   );
 }
@@ -71,6 +117,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colorWhite,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  containerLate: {
+    backgroundColor: theme.colorRed,
   },
   button: {
     backgroundColor: theme.colorBlack,
@@ -85,5 +134,16 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 24,
+  },
+  row: {
+    flexDirection: 'row',
+  },
+  heading: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 24,
+  },
+  whiteText: {
+    color: theme.colorWhite,
   },
 });
