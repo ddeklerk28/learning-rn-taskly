@@ -4,7 +4,6 @@ import { registerForPushNotificationsAsync } from '../../utils/push-notification
 import { PermissionStatus } from 'expo-modules-core';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
-import { SchedulableTriggerInputTypes } from 'expo-notifications';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -19,19 +18,14 @@ export default function CounterScreen() {
     const result = await registerForPushNotificationsAsync();
 
     if (result === PermissionStatus.GRANTED) {
-      const trigger: Notifications.TimeIntervalNotificationTrigger = {
-        seconds: 2,
-        repeats: false,
-      };
-
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: 'You’ve got mail! 📬',
-          body: 'This is a local test notification',
+          title: 'I\'m a notification from your app! 📨',
         },
-        trigger,
+        trigger: {
+          seconds: 60,
+        },
       });
-
     } else {
       if (Device.isDevice) {
         Alert.alert(
