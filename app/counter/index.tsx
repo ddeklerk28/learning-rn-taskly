@@ -4,6 +4,7 @@ import { registerForPushNotificationsAsync } from '../../utils/push-notification
 import { PermissionStatus } from 'expo-modules-core';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import { SchedulableTriggerInputTypes } from 'expo-notifications';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -20,10 +21,11 @@ export default function CounterScreen() {
     if (result === PermissionStatus.GRANTED) {
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: 'I\'m a notification from your app! 📨',
+          title: 'Im a notification from your app!',
         },
         trigger: {
-          seconds: 60,
+          type: SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: 3,
         },
       });
     } else {
