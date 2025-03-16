@@ -1,4 +1,11 @@
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ActivityIndicator,
+} from 'react-native';
 import { theme } from '../../theme';
 import { registerForPushNotificationsAsync } from '../../utils/push-notifications';
 import { PermissionStatus } from 'expo-modules-core';
@@ -9,12 +16,20 @@ import { useEffect, useState } from 'react';
 import type { Duration } from 'date-fns';
 import { intervalToDuration, isBefore } from 'date-fns';
 import { TimeSegment } from '../../components/TimeSegment';
+import { getFromStorage, saveToStorage } from '../../utils/storage';
 
-const timestamp = Date.now() + 10 * 1000;
+const frequency = 10 * 1000;
+
+const countdownStorageKey = 'taskly-countdown';
+
+type PersistedCountdownState = {
+  currentNotificationId: string | undefined;
+  completedAtTimestamps: number[];
+};
 
 type CoundownStatus = {
   isOverdue: boolean;
-  distance: Duration;
+  duration: Duration;
 };
 
 Notifications.setNotificationHandler({
@@ -26,39 +41,56 @@ Notifications.setNotificationHandler({
 });
 
 export default function CounterScreen() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [countdownState, setCountdownState] =
+    useState<PersistedCountdownState>();
   const [status, setStatus] = useState<CoundownStatus>({
     isOverdue: false,
-    distance: {},
+    duration: {},
   });
-  console.log('status', status);
+
+  const lastCompletedTimeStamp = countdownState?.completedAtTimestamps[0];
+
+  useEffect(() => {
+    const init = async () => {
+      const value = await getFromStorage(countdownStorageKey);
+      setCountdownState(value);
+    };
+    void init();
+  }, []);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
-      const isOverdue = isBefore(timestamp, Date.now());
-      const distance = intervalToDuration(
+      const timeStamp = lastCompletedTimeStamp
+        ? lastCompletedTimeStamp + frequency
+        : Date.now();
+      const isOverdue = isBefore(timeStamp, Date.now());
+      const duration = intervalToDuration(
         isOverdue
-          ? { start: timestamp, end: Date.now() }
-          : { start: Date.now(), end: timestamp },
+          ? { start: timeStamp, end: Date.now() }
+          : { start: Date.now(), end: timeStamp },
       );
-      setStatus({ isOverdue, distance });
+      setStatus({ isOverdue, duration });
+      setIsLoading(false);
     }, 1000);
 
     return () => {
       clearInterval(intervalId);
     };
-  }, []);
+  }, [lastCompletedTimeStamp]);
 
   const scheduleNotification = async () => {
+    let pushNotificationId;
     const result = await registerForPushNotificationsAsync();
 
     if (result === PermissionStatus.GRANTED) {
-      await Notifications.scheduleNotificationAsync({
+      pushNotificationId = await Notifications.scheduleNotificationAsync({
         content: {
           title: 'Im a notification from your app!',
         },
         trigger: {
           type: SchedulableTriggerInputTypes.TIME_INTERVAL,
-          seconds: 3,
+          seconds: frequency / 1000,
         },
       });
     } else {
@@ -69,7 +101,30 @@ export default function CounterScreen() {
         );
       }
     }
+    if (countdownState?.currentNotificationId) {
+      await Notifications.cancelScheduledNotificationAsync(
+        countdownState?.currentNotificationId,
+      );
+    }
+
+    const newCountdownState: PersistedCountdownState = {
+      currentNotificationId: pushNotificationId,
+      completedAtTimestamps: countdownState
+        ? [Date.now(), ...countdownState.completedAtTimestamps]
+        : [Date.now()],
+    };
+
+    setCountdownState(newCountdownState);
+    await saveToStorage(countdownStorageKey, newCountdownState);
   };
+
+  if (isLoading) {
+    return (
+      <View style={styles.activityIndicatorContainer}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
 
   return (
     <View
@@ -81,22 +136,22 @@ export default function CounterScreen() {
       <View style={styles.row}>
         <TimeSegment
           textStyle={status.isOverdue ? styles.whiteText : undefined}
-          number={status.distance.days ?? 0}
+          number={status.duration.days ?? 0}
           unit="Days"
         />
         <TimeSegment
           textStyle={status.isOverdue ? styles.whiteText : undefined}
-          number={status.distance.hours ?? 0}
+          number={status.duration.hours ?? 0}
           unit="Hours"
         />
         <TimeSegment
           textStyle={status.isOverdue ? styles.whiteText : undefined}
-          number={status.distance.minutes ?? 0}
+          number={status.duration.minutes ?? 0}
           unit="Minutes"
         />
         <TimeSegment
           textStyle={status.isOverdue ? styles.whiteText : undefined}
-          number={status.distance.seconds ?? 0}
+          number={status.duration.seconds ?? 0}
           unit="Seconds"
         />
       </View>
@@ -132,9 +187,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
-  text: {
-    fontSize: 24,
-  },
   row: {
     flexDirection: 'row',
   },
@@ -145,5 +197,11 @@ const styles = StyleSheet.create({
   },
   whiteText: {
     color: theme.colorWhite,
+  },
+  activityIndicatorContainer: {
+    backgroundColor: theme.colorWhite,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
   },
 });
